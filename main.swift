@@ -131,7 +131,8 @@ final class Controller: NSObject, NSApplicationDelegate, NSMenuDelegate {
         status.button?.toolTip = "Выровнять два окна активного приложения. Правый клик — меню."
         status.button?.target = self
         status.button?.action = #selector(clicked)
-        status.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
+        (status.button?.cell as? NSButtonCell)?.highlightsBy = [.changeBackgroundCellMask]
+        status.button?.sendAction(on: [.leftMouseUp, .rightMouseDown])
         contextMenu = NSMenu()
         contextMenu.autoenablesItems = false
         contextMenu.delegate = self
@@ -175,8 +176,13 @@ final class Controller: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc func clicked() {
         _ = activeApp()
-        if NSApp.currentEvent?.type == .rightMouseUp {
-            guard let button = status.button else { return }
+        guard let button = status.button else { return }
+        // Keep AppKit's native pressed appearance during the action and the
+        // synchronous menu tracking loop, including when the menu is cancelled.
+        button.highlight(true)
+        button.displayIfNeeded()
+        defer { button.highlight(false) }
+        if NSApp.currentEvent?.type == .rightMouseDown {
             contextMenu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.minY), in: button)
         } else { toggle(nil) }
     }
