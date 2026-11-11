@@ -128,7 +128,7 @@ final class Controller: NSObject, NSApplicationDelegate, NSMenuDelegate {
         icon.isTemplate = true
         status.button?.image = icon
         status.button?.imageScaling = .scaleNone
-        status.button?.toolTip = "Выровнять два окна активного приложения. Правый клик — меню."
+        status.button?.toolTip = "Align two windows of the active app. Right-click for options."
         status.button?.target = self
         status.button?.action = #selector(clicked)
         (status.button?.cell as? NSButtonCell)?.highlightsBy = [.changeBackgroundCellMask]
@@ -136,19 +136,19 @@ final class Controller: NSObject, NSApplicationDelegate, NSMenuDelegate {
         contextMenu = NSMenu()
         contextMenu.autoenablesItems = false
         contextMenu.delegate = self
-        applicationItem = contextMenu.addItem(withTitle: "Приложение: —", action: nil, keyEquivalent: "")
+        applicationItem = contextMenu.addItem(withTitle: "App: —", action: nil, keyEquivalent: "")
         applicationItem.isEnabled = false
         contextMenu.addItem(NSMenuItem.separator())
-        toggleItem = contextMenu.addItem(withTitle: "Выровнять два окна", action: #selector(toggle(_:)), keyEquivalent: "")
+        toggleItem = contextMenu.addItem(withTitle: "Align Two Windows", action: #selector(toggle(_:)), keyEquivalent: "")
         toggleItem.target = self
-        expandItem = contextMenu.addItem(withTitle: "Расширить окна", action: #selector(expand(_:)), keyEquivalent: "")
+        expandItem = contextMenu.addItem(withTitle: "Expand Windows", action: #selector(expand(_:)), keyEquivalent: "")
         expandItem.target = self
-        swapItem = contextMenu.addItem(withTitle: "Поменять окна местами", action: #selector(swap(_:)), keyEquivalent: "")
+        swapItem = contextMenu.addItem(withTitle: "Swap Windows", action: #selector(swap(_:)), keyEquivalent: "")
         swapItem.target = self
-        let permissionItem = contextMenu.addItem(withTitle: "Разрешение на управление окнами…", action: #selector(openPermissions), keyEquivalent: "")
+        let permissionItem = contextMenu.addItem(withTitle: "Accessibility Permission…", action: #selector(openPermissions), keyEquivalent: "")
         permissionItem.target = self
         contextMenu.addItem(NSMenuItem.separator())
-        let quitItem = contextMenu.addItem(withTitle: "Завершить", action: #selector(quit), keyEquivalent: "")
+        let quitItem = contextMenu.addItem(withTitle: "Quit Window Toggle", action: #selector(quit), keyEquivalent: "")
         quitItem.target = self
         if !AXIsProcessTrusted() {
             _ = AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary)
@@ -157,16 +157,16 @@ final class Controller: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func menuNeedsUpdate(_ menu: NSMenu) {
         menuApp = activeApp()
-        toggleItem.title = "Выровнять два окна"
+        toggleItem.title = "Align Two Windows"
         if let app = menuApp {
-            applicationItem.title = "Приложение: \(app.localizedName ?? "без названия")"
+            applicationItem.title = "App: \(app.localizedName ?? "Untitled")"
             applicationItem.image = app.icon
             applicationItem.image?.size = NSSize(width: 16, height: 16)
             toggleItem.isEnabled = true
             swapItem.isEnabled = true
             expandItem.isEnabled = true
         } else {
-            applicationItem.title = "Приложение не выбрано"
+            applicationItem.title = "No Active App"
             applicationItem.image = nil
             toggleItem.isEnabled = false
             swapItem.isEnabled = false
@@ -228,21 +228,21 @@ final class Controller: NSObject, NSApplicationDelegate, NSMenuDelegate {
         busy = true
         defer { busy = false }
         guard AXIsProcessTrusted() else {
-            message("Разреши управление окнами", "Включи Window Toggle в настройках macOS → Конфиденциальность и безопасность → Универсальный доступ.")
+            message("Accessibility Permission Required", "Enable Window Toggle in System Settings → Privacy & Security → Accessibility.")
             if !testing { openPermissions() }
             return
         }
         let windows = Array(standardWindows(app).prefix(2))
         guard windows.count == 2,
               let first = windowFrame(windows[0]), let second = windowFrame(windows[1]) else {
-            message("Нужны два окна", "Открой два обычных окна активного приложения.")
+            message("Two Windows Required", "Open two standard windows in the active app.")
             return
         }
         guard !windows.contains(where: {
             (attribute($0, "AXFullScreen") as? Bool) == true ||
             (attribute($0, kAXMinimizedAttribute) as? Bool) == true
         }) else {
-            message("Разверни оба окна", "Выйди из полноэкранного режима и разверни свёрнутые окна.")
+            message("Restore Both Windows", "Exit full screen and restore any minimized windows.")
             return
         }
         let firstMoved = setFrame(windows[0], second)
@@ -250,7 +250,7 @@ final class Controller: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if !firstMoved || !secondMoved {
             _ = setFrame(windows[0], first)
             _ = setFrame(windows[1], second)
-            message("Не удалось поменять окна местами", "Приложение ограничивает размер или перемещение окон.")
+            message("Could Not Swap Windows", "The app restricts window resizing or movement.")
         }
     }
 
@@ -268,7 +268,7 @@ final class Controller: NSObject, NSApplicationDelegate, NSMenuDelegate {
         busy = true
         defer { busy = false }
         guard AXIsProcessTrusted() else {
-            message("Разреши управление окнами", "Включи Window Toggle в настройках macOS → Privacy & Security → Accessibility. Затем снова нажми значок.")
+            message("Accessibility Permission Required", "Enable Window Toggle in System Settings → Privacy & Security → Accessibility, then click the menu bar icon again.")
             if !testing { openPermissions() }
             return
         }
@@ -276,7 +276,7 @@ final class Controller: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard !screens.isEmpty else { return }
         let windows = standardWindows(app)
         guard windows.count >= 2 else {
-            message("Нужны два окна", "Открой два обычных окна приложения «\(app.localizedName ?? "")», разверни свёрнутые окна и снова нажми значок.")
+            message("Two Windows Required", "Open two standard windows in \(app.localizedName ?? "the active app"), restore any minimized windows, then click the menu bar icon again.")
             return
         }
         // Position, rather than focus order, determines which window stays left.
@@ -285,7 +285,7 @@ final class Controller: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return a.minX == b.minX ? a.minY < b.minY : a.minX < b.minX
         }
         if selected.contains(where: { (attribute($0, "AXFullScreen") as? Bool) == true }) {
-            message("Выйди из полноэкранного режима", "Для изменения размеров нужны обычные окна приложения.")
+            message("Exit Full Screen", "Exit full screen before resizing the app’s windows.")
             return
         }
         let targets = layoutTargets(frames: selected.map { windowFrame($0)! }, screens: screens, expanded: expanded)
@@ -294,7 +294,7 @@ final class Controller: NSObject, NSApplicationDelegate, NSMenuDelegate {
             if !setFrame(window, target) { success = false }
         }
         if !success {
-            message("Приложение ограничивает размер окна", "Не все окна приняли нужные размеры.")
+            message("Window Size Restricted", "Some windows could not be resized to the requested dimensions.")
         }
     }
 

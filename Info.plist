@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
 	<key>CFBundleDisplayName</key>
 	<string>Window Toggle</string>
 	<key>CFBundleExecutable</key>
@@ -19,7 +21,7 @@
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSAccessibilityUsageDescription</key>
-	<string>Расположение, расширение и обмен местами двух окон активного приложения.</string>
+	<string>Arrange, expand, and swap two windows of the active app.</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 </dict>
