@@ -174,17 +174,25 @@ final class Controller: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
+    func menuDidClose(_ menu: NSMenu) {
+        // Restore the left-click action once AppKit finishes tracking the menu.
+        status.menu = nil
+    }
+
     @objc func clicked() {
         _ = activeApp()
         guard let button = status.button else { return }
-        // Keep AppKit's native pressed appearance during the action and the
-        // synchronous menu tracking loop, including when the menu is cancelled.
+        if NSApp.currentEvent?.type == .rightMouseDown {
+            // Let the status item own menu tracking and its selected background.
+            // A standalone NSMenu.popUp does not select the menu bar item.
+            status.menu = contextMenu
+            button.performClick(nil)
+            return
+        }
         button.highlight(true)
         button.displayIfNeeded()
         defer { button.highlight(false) }
-        if NSApp.currentEvent?.type == .rightMouseDown {
-            contextMenu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.minY), in: button)
-        } else { toggle(nil) }
+        toggle(nil)
     }
 
     func message(_ title: String, _ detail: String) {
