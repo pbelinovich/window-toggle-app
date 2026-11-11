@@ -129,10 +129,8 @@ final class Controller: NSObject, NSApplicationDelegate, NSMenuDelegate {
         status.button?.image = icon
         status.button?.imageScaling = .scaleNone
         status.button?.toolTip = "Align two windows of the active app. Right-click for options."
-        status.button?.target = self
-        status.button?.action = #selector(clicked)
         (status.button?.cell as? NSButtonCell)?.highlightsBy = [.changeBackgroundCellMask]
-        status.button?.sendAction(on: [.leftMouseUp, .rightMouseDown])
+        configureStatusButton()
         contextMenu = NSMenu()
         contextMenu.autoenablesItems = false
         contextMenu.delegate = self
@@ -174,19 +172,34 @@ final class Controller: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
+    func configureStatusButton() {
+        status.button?.target = self
+        status.button?.action = #selector(clicked)
+        status.button?.sendAction(on: [.leftMouseUp, .rightMouseDown])
+    }
+
     func menuDidClose(_ menu: NSMenu) {
-        // Restore the left-click action once AppKit finishes tracking the menu.
         status.menu = nil
+        // Assigning a status menu changes the button's event mask. Restore it
+        // after AppKit finishes menu tracking and dispatches the selected item.
+        DispatchQueue.main.async { [weak self] in
+            self?.configureStatusButton()
+        }
     }
 
     @objc func clicked() {
         _ = activeApp()
         guard let button = status.button else { return }
-        if NSApp.currentEvent?.type == .rightMouseDown {
+        switch NSApp.currentEvent?.type {
+        case .rightMouseDown, .rightMouseUp:
             // Let the status item own menu tracking and its selected background.
             // A standalone NSMenu.popUp does not select the menu bar item.
             status.menu = contextMenu
             button.performClick(nil)
+            return
+        case .leftMouseUp:
+            break
+        default:
             return
         }
         button.highlight(true)
